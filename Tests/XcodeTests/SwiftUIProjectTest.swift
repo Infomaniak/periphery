@@ -35,4 +35,12 @@ final class SwiftUIProjectTest: XcodeSourceGraphTestCase {
     func testRetainsUIApplicationDelegateAdaptorReferencedType() {
         assertReferenced(.class("AppDelegate"))
     }
+
+    func testStateMacroReferences() {
+        assertReferenced(.struct("ContentView")) {
+            self.assertReferenced(.varInstance("count"))
+            self.assertReferenced(.varInstance("bindingOnly"))
+            self.assertNotReferenced(.varInstance("unusedState"))
+        }
+    }
 }

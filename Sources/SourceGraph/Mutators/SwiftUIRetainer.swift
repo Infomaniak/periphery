@@ -16,6 +16,7 @@ final class SwiftUIRetainer: SourceGraphMutator {
     func mutate() {
         retainSpecialProtocolConformances()
         retainApplicationDelegateAdaptors()
+        referenceStateMacroProjectedProperties()
         unretainPreviewMacroExpansions()
     }
 
@@ -51,6 +52,31 @@ final class SwiftUIRetainer: SourceGraphMutator {
                 }
             }
             .forEach { graph.markRetained($0) }
+    }
+
+    private func referenceStateMacroProjectedProperties() {
+        for property in graph.declarations(ofKind: .varInstance) where property.attributes.contains(where: { $0.name == "State" }) {
+            guard let propertyUsr = property.usrs.first,
+                  let projected = property.parent?.declarations.first(where: {
+                      $0.isImplicit && $0.name == "$\(property.name)" && $0.location.file == property.location.file
+                  })
+            else { continue }
+
+            // The projected binding is a macro-generated peer, not a child of the declared property.
+            for use in graph.references(to: projected) where use.kind == .normal {
+                guard let parent = use.parent, !parent.isImplicit else { continue }
+
+                let reference = Reference(
+                    name: property.name,
+                    kind: .normal,
+                    declarationKind: property.kind,
+                    usr: propertyUsr,
+                    location: use.location
+                )
+                reference.parent = parent
+                graph.add(reference, from: parent)
+            }
+        }
     }
 
     private func unretainPreviewMacroExpansions() {
