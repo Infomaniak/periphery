@@ -20,11 +20,12 @@ green () {
 }
 
 codesign () {
-  /usr/bin/codesign --force --options=runtime --sign "Developer ID Application: Ian Leitch (8L8F8HSTR4)" "$1"
+  /usr/bin/codesign --force --options=runtime --sign "${PERIPHERY_SIGNING_IDENTITY:-Developer ID Application: Infomaniak Network SA (864VDCS2QY)}" "$1"
 }
 
+# Store notarization credentials locally with `xcrun notarytool store-credentials InfomaniakNotarize`.
 notarize () {
-  xcrun notarytool submit --keychain-profile "PeripheryNotarize" --wait "$1"
+  xcrun notarytool submit --keychain-profile "${PERIPHERY_NOTARY_PROFILE:-InfomaniakNotarize}" --wait "$1"
 }
 
 bundle_runtime_dependencies () {
@@ -68,7 +69,6 @@ rm -rf .release
 mkdir .release
 
 cat .mise/tasks/scripts/Version.swift.template | sed s/__VERSION__/${version}/ > Sources/Frontend/Version.swift
-cat .mise/tasks/scripts/artifactbundle_info.json.template | sed s/__VERSION__/${version}/ > .release/info.json
 ruby -e "file = 'MODULE.bazel'; content = File.read(file); content.sub!(/version = \".+?\"/, 'version = \"${version}\"'); File.write(file, content)"
 
 echo -e "\nUpdate CHANGELOG.md"
@@ -80,6 +80,14 @@ if [ ! -f .release/periphery ]; then
   echo "ERROR: Missing release binary?"
   exit 1
 fi
+
+if lipo -archs .release/periphery | grep -qw x86_64; then
+  supported_triples='"x86_64-apple-macosx", "arm64-apple-macosx"'
+else
+  supported_triples='"arm64-apple-macosx"'
+fi
+sed -e "s/__VERSION__/${version}/g" -e "s/__SUPPORTED_TRIPLES__/${supported_triples}/" \
+  .mise/tasks/scripts/artifactbundle_info.json.template > .release/info.json
 
 bundle_runtime_dependencies
 

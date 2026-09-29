@@ -3,7 +3,7 @@
 
 set -eo pipefail
 
-SWIFT_BUILD_FLAGS="--product periphery --configuration release -Xswiftc -cross-module-optimization --disable-sandbox --scratch-path .build"
+SWIFT_BUILD_FLAGS="--product periphery --configuration release --disable-sandbox --scratch-path .build"
 EXECUTABLE_X86_64="$(swift build ${SWIFT_BUILD_FLAGS} --arch x86_64 --show-bin-path)/periphery"
 EXECUTABLE_ARM64="$(swift build ${SWIFT_BUILD_FLAGS} --arch arm64 --show-bin-path)/periphery"
 
@@ -25,11 +25,17 @@ elif [ "$usage_arch" = "arm64" ]; then
     echo ${EXECUTABLE_ARM64}
 elif [ "$usage_arch" = "release" ]; then
     echo "Building for release"
-    build_x86_64
-    build_arm64
     mkdir -p .release
-	lipo -create -output .release/periphery ${EXECUTABLE_X86_64} ${EXECUTABLE_ARM64}
-	strip -rSTX .release/periphery
+    if lipo -archs "$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/libIndexStore.dylib" | grep -qw x86_64; then
+        build_x86_64
+        build_arm64
+        lipo -create -output .release/periphery "${EXECUTABLE_X86_64}" "${EXECUTABLE_ARM64}"
+    else
+        echo "Xcode's libIndexStore.dylib is arm64-only; building arm64 release"
+        build_arm64
+        cp "${EXECUTABLE_ARM64}" .release/periphery
+    fi
+    strip -rSTX .release/periphery
     echo "$(realpath .release/periphery)"
 else
     echo "Invalid architecture. Use --arch <arch> where <arch> is x86_64, arm64 or release"

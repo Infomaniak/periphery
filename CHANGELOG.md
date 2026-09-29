@@ -10,6 +10,20 @@
 
 ##### Bug Fixes
 
+- None.
+
+## 3.8.1 (2026-09-29)
+
+##### Breaking
+
+- None.
+
+##### Enhancements
+
+- None.
+
+##### Bug Fixes
+
 - Recognize uses of Xcode 27 SwiftUI `@State` properties through their projected bindings.
 
 ## 3.8.0 (2026-07-25)

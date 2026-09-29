@@ -74,6 +74,17 @@ brew install periphery
 mint install peripheryapp/periphery
 ```
 
+### [mise](https://mise.jdx.dev/)
+
+For the Infomaniak fork's macOS release, add the GitHub release asset to your project's `mise.toml`:
+
+```toml
+[tools]
+"github:Infomaniak/periphery" = { version = "3.8.1", asset_pattern = "periphery-{{ version }}.zip" }
+```
+
+Then run `mise install` and `mise exec -- periphery version`. The GitHub backend selects the release archive rather than building from source.
+
 ### [Bazel](https://bazel.build/)
 
 ```python
